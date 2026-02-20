@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gacha Vòng Quay Tùy Chỉnh</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .wheel-spin {
+            transition: transform 4.5s cubic-bezier(0.2, 0.8, 0.1, 1);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 overflow-x-hidden text-slate-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONS ---
+        const Icon = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Sparkles = ({className}) => <Icon className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></Icon>;
+        const Ticket = ({className}) => <Icon className={className}><path d="M2 9V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 0 0 4v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 0 0-4Z"/><path d="M13 3v18"/><path d="M13 8h1"/><path d="M13 12h1"/><path d="M13 16h1"/></Icon>;
+        const Flame = ({className}) => <Icon className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></Icon>;
+        const Play = ({className}) => <Icon className={className}><polygon points="5 3 19 12 5 21 5 3"/></Icon>;
+        const Plus = ({className}) => <Icon className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+        const Trash2 = ({className}) => <Icon className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Icon>;
+        const Settings = ({className}) => <Icon className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
+        const X = ({className}) => <Icon className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+        const Check = ({className}) => <Icon className={className}><polyline points="20 6 9 17 4 12"/></Icon>;
+        const Clipboard = ({className}) => <Icon className={className}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></Icon>;
+        const AlertCircle = ({className}) => <Icon className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>;
+
+        const WHEEL_COLORS_PALETTE = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899'];
+        const GRADIENT_OPTIONS = [
+            { id: 'blue', label: 'Xanh dương', color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30' },
+            { id: 'purple', label: 'Tím hồng', color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30' },
+            { id: 'orange', label: 'Vàng cam', color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30' },
+            { id: 'green', label: 'Xanh lá', color: 'from-green-500 to-emerald-400', border: 'border-green-500/30' }
+        ];
+
+        // --- COMPONENT VÒNG QUAY (MODAL) ---
+        function SpinWheelModal({ wheel, onClose, onFinish }) {
+            const [rotation, setRotation] = useState(0);
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [prize, setPrize] = useState(null);
+
+            const items = wheel.items;
+            const sliceAngle = 360 / items.length;
+
+            const getConicGradient = () => {
+                const parts = items.map((_, i) => {
+                    const color = WHEEL_COLORS_PALETTE[i % WHEEL_COLORS_PALETTE.length];
+                    const finalColor = (i === items.length - 1 && items.length % WHEEL_COLORS_PALETTE.length === 1) ? '#64748b' : color;
+                    return `${finalColor} ${i * sliceAngle}deg ${(i + 1) * sliceAngle}deg`;
+                });
+                return `conic-gradient(${parts.join(', ')})`;
+            };
+
+            const startSpin = () => {
+                if (isSpinning) return;
+                setIsSpinning(true);
+                const winnerIndex = Math.floor(Math.random() * items.length);
+                const spins = 6; 
+                const baseRotation = spins * 360;
+                const targetSliceAngle = (winnerIndex * sliceAngle) + (sliceAngle / 2);
+                const endRotation = baseRotation + (360 - targetSliceAngle);
+                const randomOffset = (Math.random() - 0.5) * (sliceAngle * 0.6);
+                const finalRotation = rotation + endRotation + randomOffset - (rotation % 360); 
+
+                setRotation(finalRotation);
+                setTimeout(() => {
+                    setIsSpinning(false);
+                    setPrize(items[winnerIndex]);
+                }, 4600);
+            };
+
+            const formatWheelText = (text) => {
+                const match = text.match(/\[(.*?)\]/);
+                if (match) return `[${match[1]}]`;
+                return text.length > 10 ? text.substring(0, 10) + '..' : text;
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-4">
+                    <div className="absolute top-8 w-full text-center px-4">
+                        <h2 className={`text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${wheel.color} uppercase tracking-widest drop-shadow-sm`}>
+                            {wheel.name}
+                        </h2>
+                        <div className="flex items-center justify-center gap-2 text-slate-400 mt-2 font-bold">
+                            <Ticket className="w-5 h-5 text-yellow-500" />
+                            <span>Phí: {wheel.cost} Vé</span>
+                        </div>
+                    </div>
+
+                    {!isSpinning && !prize && (
+                        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800/50 p-3 rounded-full transition-all">
+                            <X className="w-6 h-6" />
+                        </button>
+                    )}
+
+                    <div className="relative mt-8">
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 filter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                            <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[35px] border-t-white"></div>
+                            <div className="absolute -top-[2px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600"></div>
+                        </div>
+
+                        <div 
+                            className="w-72 h-72 sm:w-[450px] sm:h-[450px] rounded-full border-[10px] border-slate-800 shadow-[0_0_80px_rgba(0,0,0,0.6)] wheel-spin relative overflow-hidden"
+                            style={{ background: getConicGradient(), transform: `rotate(${rotation}deg)` }}
+                        >
+                            {items.map((item, i) => {
+                                const angle = i * sliceAngle + (sliceAngle / 2);
+                                return (
+                                    <div key={i} className="absolute top-0 left-1/2 w-[2px] h-1/2 origin-bottom flex items-start justify-center" style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}>
+                                        <div className="mt-8 font-black text-white text-xs sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] whitespace-nowrap" style={{ transform: 'rotate(-90deg)' }}>
+                                            {formatWheelText(item.text)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-slate-900 rounded-full border-4 border-slate-700 shadow-2xl z-20 flex items-center justify-center">
+                                <div className="w-4 h-4 bg-white rounded-full animate-pulse shadow-[0_0_10px_white]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 min-h-32 flex items-center justify-center w-full">
+                        {!isSpinning && !prize ? (
+                            <button onClick={startSpin} className={`px-16 py-5 rounded-full font-black text-3xl text-white bg-gradient-to-r ${wheel.color} hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-current/40`}>
+                                XOAY!
+                            </button>
+                        ) : prize ? (
+                            <div className={`bg-slate-800/80 backdrop-blur border-2 rounded-[2rem] p-8 sm:p-10 text-center w-full max-w-xl mx-4 animate-in fade-in zoom-in duration-300 ${wheel.border}`}>
+                                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">CHÚC MỪNG BẠN ĐÃ TRÚNG</h3>
+                                <div className={`text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r ${wheel.color} mb-8 leading-relaxed px-4`}>
+                                    {prize.text}
+                                </div>
+                                <button onClick={() => { onFinish(); onClose(); }} className="w-full max-w-[240px] mx-auto py-4 rounded-xl font-black text-base text-white bg-slate-700 hover:bg-slate-600 transition-all active:scale-95 shadow-lg">
+                                    NHẬN & TIẾP TỤC
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-2xl font-black text-white italic animate-pulse tracking-widest">ĐANG QUAY...</div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- COMPONENT CHÍNH ---
+        function App() {
+            const [tickets, setTickets] = useState(() => {
+                const saved = localStorage.getItem('gacha_tickets');
+                return saved ? parseInt(saved) : 10;
+            });
+            const [addAmount, setAddAmount] = useState('1');
+            const [showSettings, setShowSettings] = useState(false);
+            const [activeWheel, setActiveWheel] = useState(null);
+            const [errorMsg, setErrorMsg] = useState('');
+            
+            const [editingItemId, setEditingItemId] = useState(null);
+            const [editingText, setEditingText] = useState('');
+            
+            // Modal States
+            const [bulkPasteId, setBulkPasteId] = useState(null);
+            const [bulkText, setBulkText] = useState('');
+            const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+            const [wheels, setWheels] = useState(() => {
+                const saved = localStorage.getItem('gacha_wheels_config');
+                return saved ? JSON.parse(saved) : [
+                    { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
+                    { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
+                    { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
+                ];
+            });
+
+            const [newItems, setNewItems] = useState({ 1: '', 2: '', 3: '' });
+
+            useEffect(() => {
+                localStorage.setItem('gacha_tickets', tickets.toString());
+                localStorage.setItem('gacha_wheels_config', JSON.stringify(wheels));
+            }, [tickets, wheels]);
+
+            const handleAddTickets = () => {
+                const amt = parseInt(addAmount);
+                if (amt > 0) {
+                    setTickets(t => t + amt);
+                    setAddAmount('1');
+                }
+            };
+
+            const handleUpdateWheelConfig = (id, field, value) => {
+                setWheels(prev => prev.map(w => {
+                    if (w.id === id) {
+                        const updated = { ...w, [field]: value };
+                        if (field === 'color') {
+                            const opt = GRADIENT_OPTIONS.find(o => o.color === value);
+                            updated.border = opt.border;
+                        }
+                        return updated;
+                    }
+                    return w;
+                }));
+            };
+
+            const handleAddItem = (wId) => {
+                if (!newItems[wId].trim()) return;
+                setWheels(prev => prev.map(w => w.id === wId ? { ...w, items: [{ id: Date.now().toString() + Math.random(), text: newItems[wId] }, ...w.items] } : w));
+                setNewItems({ ...newItems, [wId]: '' });
+            };
+
+            const handleRemoveItem = (wId, iId) => {
+                setWheels(prev => prev.map(w => w.id === wId ? { ...w, items: w.items.filter(i => i.id !== iId) } : w));
+            };
+
+            const saveEdit = (wId) => {
+                if (!editingText.trim()) return;
+                setWheels(prev => prev.map(w => {
+                    if (w.id === wId) {
+                        return { ...w, items: w.items.map(item => item.id === editingItemId ? { ...item, text: editingText } : item) };
+                    }
+                    return w;
+                }));
+                setEditingItemId(null);
+            };
+
+            const handleBulkUpdate = () => {
+                if (!bulkText.trim()) { setBulkPasteId(null); return; }
+                const lines = bulkText.split('\n').map(l => l.trim()).filter(l => l !== '');
+                const newItemsList = lines.map(l => ({ id: Date.now().toString() + Math.random(), text: l }));
+                setWheels(prev => prev.map(w => w.id === bulkPasteId ? { ...w, items: newItemsList } : w));
+                setBulkPasteId(null);
+                setBulkText('');
+            };
+
+            const performReset = () => {
+                setTickets(0);
+                setShowResetConfirm(false);
+            };
+
+            const openWheel = (w) => {
+                if (tickets < w.cost) {
+                    setErrorMsg(`Bạn không đủ Vé! Cần thêm ${w.cost - tickets} Vé nữa.`);
+                    setTimeout(() => setErrorMsg(''), 3000);
+                    return;
+                }
+                if (w.items.length < 2) {
+                    setErrorMsg('Vòng quay cần ít nhất 2 phần thưởng để hoạt động.');
+                    setTimeout(() => setErrorMsg(''), 3000);
+                    return;
+                }
+                setActiveWheel(w);
+            };
+
+            return (
+                <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700 shadow-2xl mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-gradient-to-br from-blue-500 to-cyan-400 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
+                                <Sparkles className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-black text-white tracking-tight">GACHA KỶ LUẬT</h1>
+                                <p className="text-slate-400 text-sm font-medium">Biến kỷ luật thành niềm vui</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-center gap-4">
+                            <div className="bg-slate-900/80 px-6 py-3 rounded-2xl border border-slate-700 flex items-center gap-4 shadow-inner">
+                                <Ticket className="w-8 h-8 text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Số Vé Hiện Có</span>
+                                    <span className="text-3xl font-black text-yellow-500 tabular-nums leading-none">{tickets}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <div className="flex bg-slate-900 rounded-xl overflow-hidden border border-slate-700">
+                                    <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} className="w-16 bg-transparent px-3 py-2 text-center font-bold focus:outline-none" />
+                                    <button onClick={handleAddTickets} className="bg-blue-600 hover:bg-blue-500 px-4 font-bold transition-all active:scale-95">NHẬN</button>
+                                </div>
+                                <button onClick={() => setShowSettings(!showSettings)} className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-white text-slate-900 border-white' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}>
+                                    <Settings className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {errorMsg && <div className="bg-red-500/20 border border-red-500 text-red-200 p-4 rounded-2xl text-center mb-6 font-bold animate-pulse">{errorMsg}</div>}
+
+                    {/* Settings UI */}
+                    {showSettings && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-in slide-in-from-top duration-300">
+                            {wheels.map(w => (
+                                <div key={w.id} className="bg-slate-800 p-5 rounded-3xl border border-slate-700 space-y-4 shadow-lg">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${w.color}`}></div>
+                                            Vòng {w.id}
+                                        </h3>
+                                        <button onClick={() => { setBulkPasteId(w.id); setBulkText(w.items.map(i => i.text).join('\n')); }} className="text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded-md transition-colors flex items-center gap-1">
+                                            <Clipboard className="w-3 h-3" /> Dán nhanh
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3 text-xs">
+                                        <input type="text" value={w.name} onChange={e => handleUpdateWheelConfig(w.id, 'name', e.target.value)} className="w-full bg-slate-900 rounded-lg px-3 py-2 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Tên vòng quay" />
+                                        <div className="flex items-center gap-2 bg-slate-900 rounded-lg px-3">
+                                            <span className="text-slate-500 font-bold uppercase text-[9px]">Giá:</span>
+                                            <input type="number" value={w.cost} onChange={e => handleUpdateWheelConfig(w.id, 'cost', parseInt(e.target.value) || 0)} className="flex-1 bg-transparent py-2 outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Wheels List */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {wheels.map(w => (
+                            <div key={w.id} className={`bg-slate-800/40 backdrop-blur-sm rounded-[2.5rem] border-2 ${w.border} overflow-hidden flex flex-col shadow-xl`}>
+                                <div className={`p-8 bg-gradient-to-br ${w.color} relative`}>
+                                    <div className="absolute top-4 right-6 opacity-20"><Ticket className="w-16 h-16 text-white" /></div>
+                                    <h2 className="text-2xl font-black text-white leading-tight mb-1 drop-shadow-md">{w.name}</h2>
+                                    <p className="text-white/80 font-bold text-sm uppercase tracking-wider">{w.cost} Vé / Lần</p>
+                                </div>
+
+                                <div className="p-6 flex flex-col flex-1 gap-6">
+                                    <button onClick={() => openWheel(w)} className={`w-full py-4 rounded-2xl font-black text-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${tickets >= w.cost ? `bg-white text-slate-900 hover:bg-slate-100` : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'}`}>
+                                        <Play className="w-6 h-6 fill-current" /> BẮT ĐẦU QUAY
+                                    </button>
+
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2">
+                                            <input type="text" placeholder="Thêm phần thưởng..." value={newItems[w.id]} onChange={e => setNewItems({...newItems, [w.id]: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleAddItem(w.id)} className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                                            <button onClick={() => handleAddItem(w.id)} className="bg-slate-700 hover:bg-slate-600 p-2 rounded-xl text-white"><Plus className="w-5 h-5" /></button>
+                                        </div>
+
+                                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                            {w.items.map(item => (
+                                                <div key={item.id} className="group bg-slate-900/50 hover:bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center gap-2 transition-all">
+                                                    {editingItemId === item.id ? (
+                                                        <div className="flex items-center gap-2 w-full">
+                                                            <input autoFocus type="text" value={editingText} onChange={e => setEditingText(e.target.value)} onKeyDown={e => e.key === 'Enter' ? saveEdit(w.id) : e.key === 'Escape' ? setEditingItemId(null) : null} className="flex-1 bg-slate-800 border border-blue-500 rounded-lg px-2 py-1 text-sm outline-none text-white" />
+                                                            <button onClick={() => saveEdit(w.id)} className="text-green-500"><Check className="w-4 h-4" /></button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <span onClick={() => { setEditingItemId(item.id); setEditingText(item.text); }} className="text-sm font-medium text-slate-300 truncate cursor-pointer hover:text-white flex-1">{item.text}</span>
+                                                            <button onClick={() => handleRemoveItem(w.id, item.id)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* MODAL: RESET CONFIRMATION */}
+                    {showResetConfirm && (
+                        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                            <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
+                                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <AlertCircle className="w-8 h-8 text-red-500" />
+                                </div>
+                                <h3 className="text-xl font-black text-white text-center mb-2">XÁC NHẬN RESET?</h3>
+                                <p className="text-slate-400 text-center text-sm mb-6">Hành động này sẽ xóa toàn bộ số Vé hiện có về 0. Bạn có chắc chắn không?</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white transition-all">HỦY</button>
+                                    <button onClick={performReset} className="flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl font-black text-white transition-all shadow-lg shadow-red-500/20">RESET NGAY</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODAL: BULK PASTE */}
+                    {bulkPasteId && (
+                        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                            <div className="bg-slate-800 border border-slate-700 w-full max-w-xl rounded-[2rem] p-8 shadow-2xl flex flex-col gap-6 animate-in zoom-in-95">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white uppercase italic">Dán danh sách phần thưởng</h3>
+                                    <p className="text-slate-400 text-sm mt-1">Mỗi dòng văn bản bên dưới sẽ trở thành một giải thưởng mới.</p>
+                                </div>
+                                <textarea autoFocus placeholder="Ví dụ:&#10;Giải 1&#10;Giải 2..." value={bulkText} onChange={e => setBulkText(e.target.value)} className="w-full h-64 bg-slate-900 border border-slate-700 rounded-2xl p-4 text-slate-200 focus:outline-none focus:border-blue-500 font-mono text-sm resize-none custom-scrollbar" />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setBulkPasteId(null)} className="flex-1 py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white transition-all">HỦY</button>
+                                    <button onClick={handleBulkUpdate} className="flex-[2] py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-black text-white transition-all shadow-lg">LƯU DANH SÁCH</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeWheel && (
+                        <SpinWheelModal 
+                            wheel={activeWheel} 
+                            onClose={() => setActiveWheel(null)} 
+                            onFinish={() => setTickets(t => t - activeWheel.cost)} 
+                        />
+                    )}
+
+                    <div className="mt-12 text-center pb-8">
+                        <button onClick={() => setShowResetConfirm(true)} className="text-slate-600 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto px-4 py-2 bg-slate-800/20 rounded-full hover:bg-red-500/5">
+                            <Flame className="w-4 h-4" /> Reset Toàn Bộ Vé
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

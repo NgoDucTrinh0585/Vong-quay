@@ -198,7 +198,21 @@
             useEffect(() => {
                 localStorage.setItem('gacha_tickets', tickets.toString());
                 localStorage.setItem('gacha_wheels_config', JSON.stringify(wheels));
+                // Broadcast tới các tab khác
+                const channel = new BroadcastChannel('gacha_sync');
+                channel.postMessage({ tickets, wheels });
+                return () => channel.close();
             }, [tickets, wheels]);
+
+            // Lắng nghe thay đổi từ các tab khác
+            useEffect(() => {
+                const channel = new BroadcastChannel('gacha_sync');
+                channel.onmessage = (event) => {
+                    if (event.data.tickets !== undefined) setTickets(event.data.tickets);
+                    if (event.data.wheels !== undefined) setWheels(event.data.wheels);
+                };
+                return () => channel.close();
+            }, []);
 
             const handleAddTickets = () => {
                 const amt = parseInt(addAmount);
@@ -433,5 +447,4 @@
         root.render(<App />);
     </script>
 </body>
-
 </html>

@@ -328,10 +328,13 @@
                             {wheels.map(w => (
                                 <div key={w.id} className="bg-slate-800 p-5 rounded-3xl border border-slate-700 space-y-4 shadow-lg">
                                     <div className="flex justify-between items-start">
-                                        <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${w.color}`}></div>
-                                            Vòng {w.id}
-                                        </h3>
+                                        <div>
+                                            <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${w.color}`}></div>
+                                                Vòng {w.id}
+                                            </h3>
+                                            <p className="text-[10px] text-slate-400 mt-1">{w.items.length} phần thưởng</p>
+                                        </div>
                                         <button onClick={() => { setBulkPasteId(w.id); setBulkText(w.items.map(i => i.text).join('\n')); }} className="text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded-md transition-colors flex items-center gap-1">
                                             <Clipboard className="w-3 h-3" /> Dán nhanh
                                         </button>
@@ -355,7 +358,10 @@
                                 <div className={`p-8 bg-gradient-to-br ${w.color} relative`}>
                                     <div className="absolute top-4 right-6 opacity-20"><Ticket className="w-16 h-16 text-white" /></div>
                                     <h2 className="text-2xl font-black text-white leading-tight mb-1 drop-shadow-md">{w.name}</h2>
-                                    <p className="text-white/80 font-bold text-sm uppercase tracking-wider">{w.cost} Vé / Lần</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-white/80 font-bold text-sm uppercase tracking-wider">{w.cost} Vé / Lần</p>
+                                        <span className="text-white/70 font-bold text-xs bg-white/10 px-3 py-1 rounded-full">({w.items.length})</span>
+                                    </div>
                                 </div>
 
                                 <div className="p-6 flex flex-col flex-1 gap-6">

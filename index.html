@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pomodoro Gacha</title>
     
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=5">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=5">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -34,10 +38,12 @@
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
+            appearance: none; /* Thêm dòng này */
             margin: 0;
         }
         input[type="number"] {
             -moz-appearance: textfield;
+            appearance: textfield; /* Thêm dòng này */
         }
     </style>
 </head>
@@ -607,7 +613,6 @@
                                     </button>
                                     </div>
                                 </div>
-                            </div>
                         ))}
                     </div>
 
@@ -721,8 +726,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-

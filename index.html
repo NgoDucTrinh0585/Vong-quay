@@ -605,30 +605,6 @@
                                     <button onClick={() => openWheel(w)} className={`w-full py-4 rounded-2xl font-black text-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${tickets >= w.cost ? `bg-white text-slate-900 hover:bg-slate-100` : 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'}`}>
                                         <Play className="w-6 h-6 fill-current" /> BẮT ĐẦU QUAY
                                     </button>
-
-                                    <div className="space-y-4">
-                                        <div className="flex gap-2">
-                                            <input type="text" placeholder="Thêm phần thưởng..." value={newItems[w.id]} onChange={e => setNewItems({...newItems, [w.id]: e.target.value})} onKeyDown={e => e.key === 'Enter' && handleAddItem(w.id)} className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-                                            <button onClick={() => handleAddItem(w.id)} className="bg-slate-700 hover:bg-slate-600 p-2 rounded-xl text-white"><Plus className="w-5 h-5" /></button>
-                                        </div>
-
-                                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                                            {w.items.map(item => (
-                                                <div key={item.id} className="group bg-slate-900/50 hover:bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center gap-2 transition-all">
-                                                    {editingItemId === item.id ? (
-                                                        <div className="flex items-center gap-2 w-full">
-                                                            <input autoFocus type="text" value={editingText} onChange={e => setEditingText(e.target.value)} onKeyDown={e => e.key === 'Enter' ? saveEdit(w.id) : e.key === 'Escape' ? setEditingItemId(null) : null} className="flex-1 bg-slate-800 border border-blue-500 rounded-lg px-2 py-1 text-sm outline-none text-white" />
-                                                            <button onClick={() => saveEdit(w.id)} className="text-green-500"><Check className="w-4 h-4" /></button>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <span onClick={() => { setEditingItemId(item.id); setEditingText(item.text); }} className="text-sm font-medium text-slate-300 truncate cursor-pointer hover:text-white flex-1">{item.text}</span>
-                                                            <button onClick={() => handleRemoveItem(w.id, item.id)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4" /></button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -745,6 +721,7 @@
     </script>
 </body>
 </html>
+
 
 
 

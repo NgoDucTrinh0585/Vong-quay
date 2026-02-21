@@ -9,6 +9,8 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Thư viện hiệu ứng pháo hoa -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         .wheel-spin {
@@ -24,13 +26,26 @@
             background: #475569;
             border-radius: 10px;
         }
+        body {
+            touch-action: manipulation;
+        }
     </style>
 </head>
 <body class="bg-slate-900 overflow-x-hidden text-slate-200">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
+
+        // =============================================================
+        // CẤU HÌNH ÂM THANH TẠI ĐÂY
+        // Mỗi vòng quay có âm thanh riêng [spinning, fireworks, spinAgain]
+        // =============================================================
+        const SOUND_CONFIG = [
+            { spinning: 'nhac_nen_tro_choi_vui_nhon_team_building_game_show-www_tiengdong_com.mp3', fireworks: 'Am_thanh_chuc_mung_chien_thang-www_tiengdong_com.mp3', spinAgain: 'nhac_nen_tro_choi_vui_nhon_team_building_game_show-www_tiengdong_com.mp3' },  // Vòng 1
+            { spinning: 'nhac_doc_ve_cha_cha_cha-www_tiengdong_com.mp3', fireworks: 'Am_thanh_chuc_mung_chien_thang-www_tiengdong_com.mp3', spinAgain: 'nhac_doc_ve_cha_cha_cha-www_tiengdong_com.mp3' },  // Vòng 2
+            { spinning: 'nhac_beat_lo_to_nhac_nen_keu_loto-www_tiengdong_com.mp3', fireworks: 'Am_thanh_chuc_mung_chien_thang-www_tiengdong_com.mp3', spinAgain: 'nhac_beat_lo_to_nhac_nen_keu_loto-www_tiengdong_com.mp3' }   // Vòng 3
+        ];
 
         // --- ICONS ---
         const Icon = ({ children, className }) => (
@@ -57,10 +72,28 @@
         ];
 
         // --- COMPONENT VÒNG QUAY (MODAL) ---
-        function SpinWheelModal({ wheel, onClose, onFinish }) {
+        function SpinWheelModal({ wheel, onClose, onRecordPrize, onFinish }) {
             const [rotation, setRotation] = useState(0);
             const [isSpinning, setIsSpinning] = useState(false);
             const [prize, setPrize] = useState(null);
+
+            const spinSoundRef = useRef(null);
+            const fireworksSoundRef = useRef(null);
+            const spinAgainSoundRef = useRef(null);
+
+            useEffect(() => {
+                const soundIndex = wheel.id - 1;
+                const soundConfig = SOUND_CONFIG[soundIndex] || SOUND_CONFIG[0];
+                spinSoundRef.current = new Audio(soundConfig.spinning);
+                fireworksSoundRef.current = new Audio(soundConfig.fireworks);
+                spinAgainSoundRef.current = new Audio(soundConfig.spinAgain);
+                
+                return () => {
+                    if (spinSoundRef.current) spinSoundRef.current.pause();
+                    if (fireworksSoundRef.current) fireworksSoundRef.current.pause();
+                    if (spinAgainSoundRef.current) spinAgainSoundRef.current.pause();
+                };
+            }, [wheel.id]);
 
             const items = wheel.items;
             const sliceAngle = 360 / items.length;
@@ -74,8 +107,36 @@
                 return `conic-gradient(${parts.join(', ')})`;
             };
 
+            const fireConfetti = () => {
+                const duration = 3 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 110 };
+
+                const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+
+                    if (timeLeft <= 0) {
+                        return clearInterval(interval);
+                    }
+
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+                }, 250);
+            };
+
             const startSpin = () => {
                 if (isSpinning) return;
+                
+                // Phát âm thanh quay
+                if (spinSoundRef.current) {
+                    spinSoundRef.current.currentTime = 0;
+                    spinSoundRef.current.loop = true;
+                    spinSoundRef.current.play().catch(e => console.log("Audio play failed", e));
+                }
+                
                 setIsSpinning(true);
                 const winnerIndex = Math.floor(Math.random() * items.length);
                 const spins = 6; 
@@ -86,9 +147,33 @@
                 const finalRotation = rotation + endRotation + randomOffset - (rotation % 360); 
 
                 setRotation(finalRotation);
+                
                 setTimeout(() => {
-                    setIsSpinning(false);
-                    setPrize(items[winnerIndex]);
+                        setIsSpinning(false);
+                        setPrize(items[winnerIndex]);
+
+                        // Dừng nhạc quay, phát pháo, sau đó phát lại nhạc
+                        if (spinSoundRef.current) {
+                            spinSoundRef.current.loop = false;
+                            spinSoundRef.current.pause();
+                            spinSoundRef.current.currentTime = 0;
+                        }
+
+                        // Phát tiếng pháo
+                        if (fireworksSoundRef.current) {
+                            fireworksSoundRef.current.currentTime = 0;
+                            fireworksSoundRef.current.play().catch(e => console.log("Fireworks play failed", e));
+                            
+                            // Khi pháo kết thúc, phát lại nhạc
+                            fireworksSoundRef.current.onended = () => {
+                                if (spinAgainSoundRef.current) {
+                                    spinAgainSoundRef.current.currentTime = 0;
+                                    spinAgainSoundRef.current.loop = true;
+                                    spinAgainSoundRef.current.play().catch(e => console.log("Spin again audio play failed", e));
+                                }
+                            };
+                        }
+                        fireConfetti();
                 }, 4600);
             };
 
@@ -96,6 +181,28 @@
                 const match = text.match(/\[(.*?)\]/);
                 if (match) return `[${match[1]}]`;
                 return text.length > 10 ? text.substring(0, 10) + '..' : text;
+            };
+
+            const handleModalClose = () => {
+                try {
+                    if (spinSoundRef.current) {
+                        spinSoundRef.current.loop = false;
+                        spinSoundRef.current.pause();
+                        spinSoundRef.current.currentTime = 0;
+                    }
+                    if (fireworksSoundRef.current) {
+                        fireworksSoundRef.current.pause();
+                        fireworksSoundRef.current.currentTime = 0;
+                    }
+                    if (spinAgainSoundRef.current) {
+                        spinAgainSoundRef.current.loop = false;
+                        spinAgainSoundRef.current.pause();
+                        spinAgainSoundRef.current.currentTime = 0;
+                    }
+                } catch (e) {
+                    console.log('Failed to stop audio on close:', e);
+                }
+                onClose();
             };
 
             return (
@@ -111,12 +218,13 @@
                     </div>
 
                     {!isSpinning && !prize && (
-                        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800/50 p-3 rounded-full transition-all">
+                        <button onClick={handleModalClose} className="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800/50 p-3 rounded-full transition-all">
                             <X className="w-6 h-6" />
                         </button>
                     )}
 
                     <div className="relative mt-8">
+                        {/* Kim chỉ */}
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 filter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
                             <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[35px] border-t-white"></div>
                             <div className="absolute -top-[2px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600"></div>
@@ -153,12 +261,37 @@
                                 <div className={`text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r ${wheel.color} mb-8 leading-relaxed px-4`}>
                                     {prize.text}
                                 </div>
-                                <button onClick={() => { onFinish(); onClose(); }} className="w-full max-w-[240px] mx-auto py-4 rounded-xl font-black text-base text-white bg-slate-700 hover:bg-slate-600 transition-all active:scale-95 shadow-lg">
+                                <button onClick={() => {
+                                        try {
+                                            if (spinSoundRef.current) {
+                                                spinSoundRef.current.loop = false;
+                                                spinSoundRef.current.pause();
+                                                spinSoundRef.current.currentTime = 0;
+                                            }
+                                            if (fireworksSoundRef.current) {
+                                                fireworksSoundRef.current.pause();
+                                                fireworksSoundRef.current.currentTime = 0;
+                                            }
+                                            if (spinAgainSoundRef.current) {
+                                                spinAgainSoundRef.current.loop = false;
+                                                spinAgainSoundRef.current.pause();
+                                                spinAgainSoundRef.current.currentTime = 0;
+                                            }
+                                        } catch (e) {
+                                            console.log('Failed to stop sounds', e);
+                                        }
+                                        if (onRecordPrize && prize) {
+                                            onRecordPrize(wheel.name, prize.text, wheel.cost, wheel.color);
+                                        }
+                                        onFinish(); onClose();
+                                    }} className="w-full max-w-[240px] mx-auto py-4 rounded-xl font-black text-base text-white bg-slate-700 hover:bg-slate-600 transition-all active:scale-95 shadow-lg">
                                     NHẬN & TIẾP TỤC
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-2xl font-black text-white italic animate-pulse tracking-widest">ĐANG QUAY...</div>
+                            <div className="text-2xl font-black text-white italic animate-pulse tracking-widest flex items-center gap-3">
+                                <Sparkles className="animate-spin text-yellow-500" /> ĐANG QUAY...
+                            </div>
                         )}
                     </div>
                 </div>
@@ -179,18 +312,32 @@
             const [editingItemId, setEditingItemId] = useState(null);
             const [editingText, setEditingText] = useState('');
             
-            // Modal States
             const [bulkPasteId, setBulkPasteId] = useState(null);
             const [bulkText, setBulkText] = useState('');
             const [showResetConfirm, setShowResetConfirm] = useState(false);
+            const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+            
+            const [spinHistory, setSpinHistory] = useState(() => {
+                const saved = localStorage.getItem('gacha_spin_history');
+                return saved ? JSON.parse(saved) : [];
+            });
 
             const [wheels, setWheels] = useState(() => {
                 const saved = localStorage.getItem('gacha_wheels_config');
-                return saved ? JSON.parse(saved) : [
-                    { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
-                    { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
-                    { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
-                ];
+                try {
+                    return saved ? JSON.parse(saved) : [
+                        { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
+                        { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
+                        { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
+                    ];
+                } catch (e) {
+                    console.log('Failed to parse wheels config:', e);
+                    return [
+                        { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
+                        { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
+                        { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
+                    ];
+                }
             });
 
             const [newItems, setNewItems] = useState({ 1: '', 2: '', 3: '' });
@@ -198,21 +345,8 @@
             useEffect(() => {
                 localStorage.setItem('gacha_tickets', tickets.toString());
                 localStorage.setItem('gacha_wheels_config', JSON.stringify(wheels));
-                // Broadcast tới các tab khác
-                const channel = new BroadcastChannel('gacha_sync');
-                channel.postMessage({ tickets, wheels });
-                return () => channel.close();
-            }, [tickets, wheels]);
-
-            // Lắng nghe thay đổi từ các tab khác
-            useEffect(() => {
-                const channel = new BroadcastChannel('gacha_sync');
-                channel.onmessage = (event) => {
-                    if (event.data.tickets !== undefined) setTickets(event.data.tickets);
-                    if (event.data.wheels !== undefined) setWheels(event.data.wheels);
-                };
-                return () => channel.close();
-            }, []);
+                localStorage.setItem('gacha_spin_history', JSON.stringify(spinHistory));
+            }, [tickets, wheels, spinHistory]);
 
             const handleAddTickets = () => {
                 const amt = parseInt(addAmount);
@@ -228,7 +362,7 @@
                         const updated = { ...w, [field]: value };
                         if (field === 'color') {
                             const opt = GRADIENT_OPTIONS.find(o => o.color === value);
-                            updated.border = opt.border;
+                            updated.border = opt ? opt.border : 'border-slate-700';
                         }
                         return updated;
                     }
@@ -271,6 +405,78 @@
                 setShowResetConfirm(false);
             };
 
+            const addToHistory = (wheelName, prize, cost, wheelColor) => {
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const newEntry = {
+                    id: Date.now().toString(),
+                    wheelName,
+                    prize,
+                    cost,
+                    wheelColor,
+                    time: timeStr,
+                    timestamp: now.getTime()
+                };
+                setSpinHistory(prev => [newEntry, ...prev].slice(0, 10));
+            };
+
+            const getRelativeDate = (timestamp) => {
+                // Xử lý dữ liệu cũ không có timestamp
+                if (!timestamp) return '';
+                
+                const recordDate = new Date(timestamp);
+                
+                // Kiểm tra ngày hợp lệ
+                if (isNaN(recordDate.getTime())) return '';
+                
+                const today = new Date();
+                const targetDate = new Date(recordDate);
+                
+                // Đưa cả 2 mốc thời gian về 00:00:00 của ngày đó để so sánh chính xác số ngày
+                today.setHours(0, 0, 0, 0);
+                targetDate.setHours(0, 0, 0, 0);
+                
+                const diffTime = today.getTime() - targetDate.getTime();
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) {
+                    return 'Hôm nay';
+                } else if (diffDays === 1) {
+                    return 'Hôm qua';
+                } else {
+                    const day = String(recordDate.getDate()).padStart(2, '0');
+                    const month = String(recordDate.getMonth() + 1).padStart(2, '0');
+                    return `${day}/${month}`;
+                }
+            };
+
+            const deleteFromHistory = (id) => {
+                setSpinHistory(prev => prev.filter(item => item.id !== id));
+            };
+
+            const clearHistory = () => {
+                setShowClearHistoryConfirm(true);
+            };
+
+            const confirmClearHistory = () => {
+                setSpinHistory([]);
+                setShowClearHistoryConfirm(false);
+            };
+
+            const getColorClassesFromWheel = (wheelColor) => {
+                if (!wheelColor) {
+                    return { text: 'text-emerald-300', border: 'border-l-emerald-500', bag: 'from-emerald-500 to-emerald-600' };
+                }
+                if (wheelColor.includes('blue') && wheelColor.includes('cyan')) {
+                    return { text: 'text-cyan-400', border: 'border-l-cyan-500', bag: 'from-blue-500 to-cyan-400' };
+                } else if (wheelColor.includes('purple') && wheelColor.includes('pink')) {
+                    return { text: 'text-pink-500', border: 'border-l-pink-500', bag: 'from-purple-500 to-pink-500' };
+                } else if (wheelColor.includes('yellow') || wheelColor.includes('orange')) {
+                    return { text: 'text-orange-500', border: 'border-l-orange-500', bag: 'from-yellow-400 to-orange-500' };
+                }
+                return { text: 'text-emerald-300', border: 'border-l-emerald-500', bag: 'from-emerald-500 to-emerald-600' };
+            };
+
             const openWheel = (w) => {
                 if (tickets < w.cost) {
                     setErrorMsg(`Bạn không đủ Vé! Cần thêm ${w.cost - tickets} Vé nữa.`);
@@ -302,7 +508,7 @@
                         <div className="flex flex-wrap items-center justify-center gap-4">
                             <div className="bg-slate-900/80 px-6 py-3 rounded-2xl border border-slate-700 flex items-center gap-4 shadow-inner">
                                 <Ticket className="w-8 h-8 text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
-                                <div className="flex flex-col">
+                                <div className="flex flex-col justify-center text-center">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase">Số Vé Hiện Có</span>
                                     <span className="text-3xl font-black text-yellow-500 tabular-nums leading-none">{tickets}</span>
                                 </div>
@@ -311,10 +517,13 @@
                             <div className="flex gap-2">
                                 <div className="flex bg-slate-900 rounded-xl overflow-hidden border border-slate-700">
                                     <input type="number" value={addAmount} onChange={e => setAddAmount(e.target.value)} className="w-16 bg-transparent px-3 py-2 text-center font-bold focus:outline-none" />
-                                    <button onClick={handleAddTickets} className="bg-blue-600 hover:bg-blue-500 px-4 font-bold transition-all active:scale-95">NHẬN</button>
+                                    <button onClick={handleAddTickets} className="bg-blue-600 hover:bg-blue-500 px-4 font-bold transition-all active:scale-95 text-white">NHẬN</button>
                                 </div>
                                 <button onClick={() => setShowSettings(!showSettings)} className={`p-3 rounded-xl border transition-all ${showSettings ? 'bg-white text-slate-900 border-white' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}>
                                     <Settings className="w-6 h-6" />
+                                </button>
+                                <button onClick={() => setShowResetConfirm(true)} className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 px-4 py-3 rounded-2xl border-2 border-red-400 shadow-lg shadow-red-500/30 transition-all flex items-center gap-2 text-white font-bold text-sm hover:scale-105 active:scale-95">
+                                    <Flame className="w-5 h-5" /> Phạm Luật
                                 </button>
                             </div>
                         </div>
@@ -432,19 +641,73 @@
                         </div>
                     )}
 
+                    {spinHistory.length > 0 && (
+                        <div className="mt-12 bg-slate-800/40 backdrop-blur-sm rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-black text-emerald-300">📋 LỊCH SỬ QUAY GẦN ĐÂY</h3>
+                                <button onClick={clearHistory} className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 border-2 border-red-500 rounded-lg font-bold text-red-300 text-sm transition-all shadow-lg shadow-red-500/10">
+                                    🗑️ XÓA LỊCH SỬ
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {spinHistory.map((record) => {
+                                    const colors = getColorClassesFromWheel(record.wheelColor);
+                                    const deleteButtonColor = colors.text === 'text-cyan-400' ? 'hover:text-cyan-400' : 
+                                                             colors.text === 'text-pink-500' ? 'hover:text-pink-500' : 
+                                                             colors.text === 'text-orange-500' ? 'hover:text-orange-500' : 
+                                                             'hover:text-emerald-300';
+                                    const relativeDate = getRelativeDate(record.timestamp);
+                                    return (
+                                    <div key={record.id} className={`bg-slate-900/60 border-l-4 p-4 hover:shadow-lg transition-all flex items-center justify-between gap-6 rounded-lg group ${colors.border}`}>
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <p className={`text-xs font-black text-white px-3 py-1 rounded-lg min-w-fit bg-gradient-to-r ${colors.bag}`}>
+                                                {relativeDate ? `${relativeDate} - ${record.time}` : record.time}
+                                            </p>
+                                            <div className="flex-1">
+                                                <p className="text-xs font-bold text-slate-400 mb-1">{record.wheelName}</p>
+                                                <p className={`font-black text-sm ${colors.text}`}>{record.prize}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-sm font-bold text-amber-400 min-w-fit">-{record.cost} vé</p>
+                                            <button onClick={() => deleteFromHistory(record.id)} className={`text-slate-500 ${deleteButtonColor} opacity-0 group-hover:opacity-100 transition-all`}>
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {showClearHistoryConfirm && (
+                        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                            <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
+                                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <AlertCircle className="w-8 h-8 text-red-500" />
+                                </div>
+                                <h3 className="text-xl font-black text-white text-center mb-2">XÁC NHẬN XÓA?</h3>
+                                <p className="text-slate-400 text-center text-sm mb-6">Hành động này sẽ xóa toàn bộ lịch sử quay. Bạn có chắc chắn không?</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowClearHistoryConfirm(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white transition-all">HỦY</button>
+                                    <button onClick={confirmClearHistory} className="flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl font-black text-white transition-all shadow-lg shadow-red-500/20">XÓA NGAY</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeWheel && (
                         <SpinWheelModal 
                             wheel={activeWheel} 
                             onClose={() => setActiveWheel(null)} 
-                            onFinish={() => setTickets(t => t - activeWheel.cost)} 
+                            onRecordPrize={(wheelName, prize, cost, wheelColor) => {
+                                addToHistory(wheelName, prize, cost, wheelColor);
+                                setTickets(t => t - cost);
+                            }}
+                            onFinish={() => setActiveWheel(null)}
                         />
                     )}
-
-                    <div className="mt-12 text-center pb-8">
-                        <button onClick={() => setShowResetConfirm(true)} className="text-slate-600 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto px-4 py-2 bg-slate-800/20 rounded-full hover:bg-red-500/5">
-                            <Flame className="w-4 h-4" /> Reset Toàn Bộ Vé
-                        </button>
-                    </div>
                 </div>
             );
         }

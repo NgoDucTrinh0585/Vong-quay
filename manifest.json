@@ -1,6 +1,6 @@
 {
   "name": "Pomodoro Gacha",
-  "short_name": "PomoGacha",
+  "short_name": "PomGacha",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -17,4 +17,5 @@
       "type": "image/png"
     }
   ]
+
 }

@@ -13,8 +13,13 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <!-- Thư viện hiệu ứng pháo hoa -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics-compat.js"></script>
 
     <style>
         .wheel-spin {
@@ -52,7 +57,30 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        // =============================================================
+        // KHỞI TẠO FIREBASE
+        // =============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQirF3UZx_HMQNf-FsGuKbP1uhmXMPFRY",
+            authDomain: "pomodorogacha-103b4.firebaseapp.com",
+            projectId: "pomodorogacha-103b4",
+            storageBucket: "pomodorogacha-103b4.firebasestorage.app",
+            messagingSenderId: "882119417918",
+            appId: "1:882119417918:web:dd094c4a580b7aa625316f",
+            measurementId: "G-TVZ1SJ28J0"
+        };
 
+        // Khởi tạo app Firebase nếu chưa có
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Bật Analytics (tuỳ chọn)
+        const analytics = firebase.analytics();
+        
+        // Khởi tạo Firestore database để chuẩn bị đồng bộ dữ liệu
+        const db = firebase.firestore();
+        
         // =============================================================
         // CẤU HÌNH ÂM THANH TẠI ĐÂY
         // Mỗi vòng quay có âm thanh riêng [spinning, fireworks, spinAgain]
@@ -726,4 +754,3 @@
     </script>
 </body>
 </html>
-

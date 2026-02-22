@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pomodoro Gacha</title>
     
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=5">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=5">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -80,7 +80,7 @@
         
         // Khởi tạo Firestore database để chuẩn bị đồng bộ dữ liệu
         const db = firebase.firestore();
-        
+
         // =============================================================
         // CẤU HÌNH ÂM THANH TẠI ĐÂY
         // Mỗi vòng quay có âm thanh riêng [spinning, fireworks, spinAgain]
@@ -344,52 +344,52 @@
 
         // --- COMPONENT CHÍNH ---
         function App() {
-            const [tickets, setTickets] = useState(() => {
-                const saved = localStorage.getItem('gacha_tickets');
-                return saved ? parseInt(saved) : 10;
-            });
+            // Khởi tạo state tĩnh ban đầu (Không load từ localStorage nữa)
+            const [tickets, setTickets] = useState(10);
+            const [spinHistory, setSpinHistory] = useState([]);
+            const [wheels, setWheels] = useState([
+                { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
+                { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
+                { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
+            ]);
+
             const [addAmount, setAddAmount] = useState('1');
             const [showSettings, setShowSettings] = useState(false);
             const [activeWheel, setActiveWheel] = useState(null);
             const [errorMsg, setErrorMsg] = useState('');
-            
             const [editingItemId, setEditingItemId] = useState(null);
             const [editingText, setEditingText] = useState('');
-            
             const [bulkPasteId, setBulkPasteId] = useState(null);
             const [bulkText, setBulkText] = useState('');
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
-            
-            const [spinHistory, setSpinHistory] = useState(() => {
-                const saved = localStorage.getItem('gacha_spin_history');
-                return saved ? JSON.parse(saved) : [];
-            });
-
-            const [wheels, setWheels] = useState(() => {
-                const saved = localStorage.getItem('gacha_wheels_config');
-                try {
-                    return saved ? JSON.parse(saved) : [
-                        { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
-                        { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
-                        { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
-                    ];
-                } catch (e) {
-                    console.log('Failed to parse wheels config:', e);
-                    return [
-                        { id: 1, name: 'Vòng Khởi Động', cost: 1, color: 'from-blue-500 to-cyan-400', border: 'border-blue-500/30', items: [{ id: '1-1', text: '[SR] Nghỉ 10p' }, { id: '1-2', text: '[R] 20 Hít đất' }, { id: '1-3', text: '[N] Học tiếp' }] },
-                        { id: 2, name: 'Vòng Tiêu Chuẩn', cost: 4, color: 'from-purple-500 to-pink-500', border: 'border-purple-500/30', items: [{ id: '2-1', text: '[SSR] Xem 1 tập phim' }, { id: '2-2', text: '[SR] Chơi 1 ván game' }] },
-                        { id: 3, name: 'Vòng Thần Thoại', cost: 8, color: 'from-yellow-400 to-orange-500', border: 'border-yellow-500/30', items: [{ id: '3-1', text: '[LEGEND] Nghỉ luôn tối nay' }] }
-                    ];
-                }
-            });
-
             const [newItems, setNewItems] = useState({ 1: '', 2: '', 3: '' });
 
+            // 2. TẢI DỮ LIỆU TỪ FIREBASE KHI VỪA VÀO WEB (Chạy 1 lần duy nhất)
             useEffect(() => {
-                localStorage.setItem('gacha_tickets', tickets.toString());
-                localStorage.setItem('gacha_wheels_config', JSON.stringify(wheels));
-                localStorage.setItem('gacha_spin_history', JSON.stringify(spinHistory));
+                db.collection("pomodoro").doc("my_game_data").get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.tickets !== undefined) setTickets(data.tickets);
+                        if (data.wheels) setWheels(data.wheels);
+                        if (data.spinHistory) setSpinHistory(data.spinHistory);
+                    }
+                }).catch(err => console.error("Lỗi khi tải dữ liệu từ Firebase:", err));
+            }, []);
+
+            // 3. LƯU DỮ LIỆU LÊN FIREBASE MỖI KHI CÓ THAY ĐỔI
+            useEffect(() => {
+                // Để tránh việc ghi đè dữ liệu mặc định lên Firebase ngay khi vừa load trang,
+                // chúng ta chỉ nên lưu nếu wheels đã có dữ liệu hợp lệ.
+                if (wheels.length > 0) {
+                    db.collection("pomodoro").doc("my_game_data").set({
+                        tickets: tickets,
+                        wheels: wheels,
+                        spinHistory: spinHistory
+                    }, { merge: true })
+                    .catch(err => console.error("Lỗi khi lưu dữ liệu lên Firebase:", err));
+                }
             }, [tickets, wheels, spinHistory]);
 
             const handleAddTickets = () => {
@@ -754,3 +754,7 @@
     </script>
 </body>
 </html>
+
+
+
+

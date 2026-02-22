@@ -364,8 +364,8 @@
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
             const [newItems, setNewItems] = useState({ 1: '', 2: '', 3: '' });
-
-            // 2. TẢI DỮ LIỆU TỪ FIREBASE KHI VỪA VÀO WEB (Chạy 1 lần duy nhất)
+            const [isLoaded, setIsLoaded] = useState(false);
+            // 2. TẢI DỮ LIỆU TỪ FIREBASE (Chạy 1 lần duy nhất)
             useEffect(() => {
                 db.collection("pomodoro").doc("my_game_data").get()
                 .then((doc) => {
@@ -375,14 +375,18 @@
                         if (data.wheels) setWheels(data.wheels);
                         if (data.spinHistory) setSpinHistory(data.spinHistory);
                     }
-                }).catch(err => console.error("Lỗi khi tải dữ liệu từ Firebase:", err));
+                    // BẬT CHỐT CHẶN: Đã tải xong dữ liệu
+                    setIsLoaded(true); 
+                }).catch(err => {
+                    console.error("Lỗi khi tải dữ liệu từ Firebase:", err);
+                    setIsLoaded(true); // Lỗi cũng phải mở chốt để web còn chạy
+                });
             }, []);
 
             // 3. LƯU DỮ LIỆU LÊN FIREBASE MỖI KHI CÓ THAY ĐỔI
             useEffect(() => {
-                // Để tránh việc ghi đè dữ liệu mặc định lên Firebase ngay khi vừa load trang,
-                // chúng ta chỉ nên lưu nếu wheels đã có dữ liệu hợp lệ.
-                if (wheels.length > 0) {
+                // CHỈ LƯU KHI DỮ LIỆU ĐÃ ĐƯỢC TẢI XONG TỪ FIREBASE VỀ
+                if (isLoaded) {
                     db.collection("pomodoro").doc("my_game_data").set({
                         tickets: tickets,
                         wheels: wheels,
@@ -390,41 +394,24 @@
                     }, { merge: true })
                     .catch(err => console.error("Lỗi khi lưu dữ liệu lên Firebase:", err));
                 }
-            }, [tickets, wheels, spinHistory]);
+            }, [tickets, wheels, spinHistory, isLoaded]);
 
             const handleAddTickets = () => {
-                const amt = parseInt(addAmount);
-                if (amt > 0) {
-                    setTickets(t => t + amt);
-                    setAddAmount('1');
+                const amount = parseInt(addAmount);
+                if (!isNaN(amount) && amount > 0) {
+                    setTickets(prev => prev + amount);
                 }
             };
 
             const handleSubtractTickets = () => {
-                const amt = parseInt(addAmount);
-                if (amt > 0) {
-                    // Trừ vé nhưng không để bị âm
-                    setTickets(t => Math.max(0, t - amt)); 
-                    setAddAmount('1');
+                const amount = parseInt(addAmount);
+                if (!isNaN(amount) && amount > 0) {
+                    setTickets(prev => Math.max(0, prev - amount));
                 }
             };
-            
-            const handleResetTickets = () => {
-                setTickets(0);
-            };
 
-            const handleUpdateWheelConfig = (id, field, value) => {
-                setWheels(prev => prev.map(w => {
-                    if (w.id === id) {
-                        const updated = { ...w, [field]: value };
-                        if (field === 'color') {
-                            const opt = GRADIENT_OPTIONS.find(o => o.color === value);
-                            updated.border = opt ? opt.border : 'border-slate-700';
-                        }
-                        return updated;
-                    }
-                    return w;
-                }));
+            const handleUpdateWheelConfig = (wId, field, value) => {
+                setWheels(prev => prev.map(w => w.id === wId ? { ...w, [field]: value } : w));
             };
 
             const handleAddItem = (wId) => {
@@ -754,7 +741,3 @@
     </script>
 </body>
 </html>
-
-
-
-

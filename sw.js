@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pomo-gacha-cache-v2'; // Đổi tên cache để nó làm mới lại
+const CACHE_NAME = 'pomo-gacha-cache-v3'; // Đổi tên cache để nó làm mới lại
 const urlsToCache = [
     './',
     './index.html',
@@ -10,5 +10,6 @@ const urlsToCache = [
     './favicon-16x16.png',
     './favicon-32x32.png'
 ];
+
 
 // ... (phần code eventListener 'install' và 'fetch' giữ nguyên như cũ) ...
